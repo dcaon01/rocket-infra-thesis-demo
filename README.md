@@ -1,67 +1,39 @@
-# ROCKET INFRA
+# Rocket - infrastructure
 
-## Utilizzo
-1. Installare `aws-cli`.
-2. Poi aprire prompt dei comandi e configurare `aws-cli` con `aws configure`.
-3. Una volta installato e configurato, settare i profili in questo modo nel file `credentials` che trovi nella cartella `aws`:
+Rocket is a web platform built at Keus S.r.l. to run a catalogue of proprietary SaaS products from one place: orders, licences, contracts, invoices and the metrics of every product. This repository describes its AWS infrastructure as code, in OpenTofu. It accompanies the master's thesis *Design and Development of a Scalable Web Platform for Proprietary Software Product Tracking and Management Using Enterprise-Level Frameworks and Cloud Architecture* (Damiano Caon, University of Padua, Department of Information Engineering).
 
-```
-[default]
-aws_access_key_id = test
-aws_secret_access_key = test
-[nome-profilo]
-aws_access_key_id = effettiva_access_key
-aws_secret_access_key = effettivo_secret
-```
-Le informazioni del profilo si trovano nello IAM User creato tramite consolle. In ogni caso, questo farà in modo di poter switchare tra profili.
+The code is a copy of the one Keus runs, prepared for public consultation. It deploys the demo on a separate AWS account in Ireland (`eu-west-1`), without custom domains and without external integrations. Every change made for that purpose carries the comment `Demo mode (INTEGRATIONS_ENABLED=false), not part of the original Rocket.`
 
-3. Prima di avviare una sessione di terraform, aprire il prompt dei comandi, o il cmd o la powershell che sia, e settare una variabile d'ambiente temporanea. In Windows, da cmd: 
+Live demo: <https://d2c8lp2zkatd89.cloudfront.net> (the demo accounts are listed in the [frontend README](https://github.com/dcaon01/rocket-fe-thesis-demo#demo-accounts))
 
-```
-set AWS_PROFILE=nome-profilo
-```
+The other two parts of the platform:
+- [rocket-fe-thesis-demo](https://github.com/dcaon01/rocket-fe-thesis-demo): the Angular interface;
+- [rocket-be-thesis-demo](https://github.com/dcaon01/rocket-be-thesis-demo): the NestJS backend.
 
-4. Eseguire i comandi Terraform muovendosi all'intetrno della cartella contenente l'infrastruttura che si vuole tirare su.
+## Structure
 
-## Template
-L'infra segue un template con al seguente struttura:
-- `backend-configs`: contiene le configurazioni generate dal terraform apply di bootstrap.
-- `be`: contiene l'infrastruttura e i file di configurazione di terraform del backend di Rocket.
-- `fe`: contiene l'infrastruttura e i file di configurazione di terraform del frontend idi Rocket.
-- `bootstrap`: contiene i file terraform per creare i bucket s3 e le tabelle dynamo per mantenere lo stato di terraform in remoto e per generare i backend-configs.
-- `shared`: contiene i moduli comuni alle altre cartelle.
+- `be/`: the backend. Three Lambda functions (core, cognito, render) behind an HTTP API Gateway, the Cognito user pool, the SQS queues and the EventBridge bus of the integration with the products, the S3 buckets for files and packages, the SES identity and the email templates, and the IAM roles the backend's CI takes through GitHub OIDC.
+- `fe/`: the frontend. A private S3 bucket served by a CloudFront distribution, and the role the frontend's CI takes to publish it.
+- `shared/modules/`: the modules both use, such as `lambda-function`, `api-gateway`, `cognito`, `sqs-queue`, `cloudfront-cdn` and `github-oidc`.
+- `bootstrap/`: the S3 bucket and DynamoDB lock table that hold the remote state of `be` and `fe`, created with CloudPosse's `tfstate-backend` module.
+- `backend-configs/`: the backend settings `tofu init` reads to reach that state, one file per environment and component.
 
-## Ordine di esecuzione
-Per prima cosa bisogna eseguire `bootstrap`. Successivamente si possono tirare su le infrastrutture a backend e frontend. E' importante commentare `module "terraform_state_backend"` dentro il main.tf in bootstrap succesivamente alla sua esecuzione per sicurezza.
+The OpenTofu workspace is the environment: `dev` and `prod` share the code and differ in the values of `locals.tf`. The DynamoDB tables of the application are not here, because Dynamoose creates them when the core starts.
 
-## Deploy Lambda: placeholder vs S3
+In the demo, `integrations_enabled` defaults to `false`. Without it the SES identity on Keus's domain is not created, Cognito sends its invitations from its default address, no product queue is configured, and the core Lambda gets `INTEGRATIONS_ENABLED=false`.
 
-Le Lambda functions hanno due modalità di package source: `placeholder` e `s3`.
+## Order of the first deploy
 
-### Perché serve il placeholder (chicken-and-egg problem)
+1. `bootstrap/`: creates the state bucket and lock table for each environment and component.
+2. `fe/`: creates the bucket and the distribution. Its output is the CloudFront address, which the backend needs for CORS and for the links in its documents.
+3. `be/`, with `-var lambda_placeholder=true`: on an empty account no Lambda package exists on S3 yet, so the functions are created with a placeholder.
+4. The CI of the backend repository builds the packages, uploads them and runs `tofu apply` from this repository with the real ones. From then on every deploy goes through the CI.
 
-Quando si crea l'infrastruttura da zero con `terraform apply`, le Lambda hanno bisogno di un pacchetto per essere create. Ma a quel punto la CI/CD non ha ancora mai girato, quindi non esiste nessuno zip su S3 a cui puntare.
-
-Il problema è circolare:
-1. La Lambda vuole un file zip su S3 per essere creata
-2. La CI/CD carica lo zip su S3 e poi aggiorna la Lambda via Terraform
-3. Ma la CI/CD ha bisogno che l'infrastruttura (bucket S3, Lambda, IAM roles) esista già
-
-Per rompere il cerchio si usa `package_source = "placeholder"`: Terraform crea la Lambda con un pacchetto fittizio locale, permettendo alla CI/CD di avere tutta l'infrastruttura pronta al primo giro.
-
-### Quando passare a S3
-
-Una volta che l'infrastruttura è stata creata con il placeholder e la CI/CD è configurata, si cambia a:
-
-```hcl
-package_source = "s3"
-s3_bucket      = aws_s3_bucket.lambda_packages.id
-s3_key         = "${local.environment}/${local.lambda_package_version}/core.zip"
+```bash
+cd be
+tofu init -backend-config=../backend-configs/dev-backend.tfbackend
+tofu workspace select -or-create dev
+tofu apply -var domain_name=<cloudfront-address> -var lambda_placeholder=true
 ```
 
-Non serve fare `terraform apply` manualmente dopo questo cambio. La CI/CD gestisce tutto autonomamente:
-1. **Build**: compila il codice e carica lo zip su `s3://{bucket}/{env}/{commit-sha}/{service}.zip`
-2. **Plan**: esegue `terraform plan -var="lambda_package_version={commit-sha}"` e rileva il cambio di `s3_key`
-3. **Apply**: aggiorna la Lambda per puntare al nuovo pacchetto S3
-
-Basta pushare il cambio di configurazione su `rocket-infra` e lanciare la pipeline su `rocket-be`. Il plan vedrà la transizione da placeholder a S3 e l'apply la applicherà.
+Locally the AWS profile comes from `aws_profiles` in `variables.tf`. In CI no profile is used: the workflows take the roles in `github-oidc.tf` and the repositories hold no AWS key.
