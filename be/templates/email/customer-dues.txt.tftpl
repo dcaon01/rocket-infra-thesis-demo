@@ -1,0 +1,18 @@
+Scadenze dei vostri clienti
+
+Queste sono le scadenze dei clienti di {{text.resellerName}} ancora da incassare. Gli importi sono IVA esclusa; quando avete incassato, segnatelo nello scadenziario e l'avviso non torna.
+
+{{#if text.dueToday.length}}In scadenza oggi:
+{{#each text.dueToday}}- {{companyName}}, {{description}}: {{amount}}, scadenza {{dueDate}}
+{{/each}}
+{{/if}}{{#if text.late.length}}Scadute da 5 giorni:
+{{#each text.late}}- {{companyName}}, {{description}}: {{amount}}, scadenza {{dueDate}}
+{{/each}}
+{{/if}}{{#if text.veryLate.length}}Scadute da 10 giorni:
+{{#each text.veryLate}}- {{companyName}}, {{description}}: {{amount}}, scadenza {{dueDate}}
+{{/each}}
+{{/if}}
+Apri lo scadenziario: {{text.scheduleUrl}}
+
+--
+Messaggio automatico di Keus: le risposte a questo indirizzo non vengono lette.

@@ -1,0 +1,7 @@
+# Demo mode (INTEGRATIONS_ENABLED=false), not part of the original Rocket.
+region  = "eu-west-1"
+bucket  = "dcaon01-dev-rocket-frontend"
+key     = "terraform.tfstate"
+encrypt = "true"
+
+dynamodb_table = "dcaon01-dev-rocket-frontend-lock"

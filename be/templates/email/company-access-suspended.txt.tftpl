@@ -1,0 +1,9 @@
+Accessi sospesi
+
+Gli accessi di {{text.companyName}} a {{text.productName}}, contratto {{text.contractCode}}, sono sospesi {{#if text.amount}}finché la fattura di {{text.amount}} resta non pagata{{else}}{{#if text.paymentNotSetUp}}finché il pagamento del contratto non viene attivato{{else}}dall'amministrazione di Keus{{/if}}{{/if}}. Il contratto resta in vigore.
+{{#if text.checkoutUrl}}
+Attiva il pagamento (link valido 24 ore): {{text.checkoutUrl}}
+{{/if}}
+
+--
+Messaggio automatico di Keus: le risposte a questo indirizzo non vengono lette.

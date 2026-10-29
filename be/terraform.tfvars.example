@@ -1,0 +1,11 @@
+# Example Terraform variables file
+# Copy this to terraform.tfvars and fill in your values
+# NEVER commit terraform.tfvars to git!
+
+# Lambda package versions (git commit SHA)
+core_lambda_package_version = "97b8da668fc42a51d0d70361d80d50398a9fb4ce"
+cognito_lambda_package_version = "97b8da668fc42a51d0d70361d80d50398a9fb4ce"
+render_lambda_package_version = ""
+domain_name = "keus.dev"
+
+# Products config (EventBridge + SQS) is now per-environment in locals.tf env_config.
