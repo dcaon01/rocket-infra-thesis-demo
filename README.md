@@ -37,3 +37,7 @@ tofu apply -var domain_name=<cloudfront-address> -var lambda_placeholder=true
 ```
 
 Locally the AWS profile comes from `aws_profiles` in `variables.tf`. In CI no profile is used: the workflows take the roles in `github-oidc.tf` and the repositories hold no AWS key.
+
+## Terms of use
+
+This code is published with the consent of Keus S.r.l. for academic and evaluation purposes only, as a companion to the thesis above. All rights are reserved. The repository may be read, cloned and run to examine the work described in the thesis, but neither the code nor any part of it may be used, copied, modified or redistributed for commercial purposes. For any other use, contact the author through GitHub: https://github.com/dcaon01.
