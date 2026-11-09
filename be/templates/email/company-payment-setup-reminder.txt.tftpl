@@ -1,0 +1,10 @@
+Pagamento da attivare
+
+Il pagamento del contratto {{text.contractCode}} di {{text.companyName}} su {{text.productName}} non è ancora attivo. Il referente lo attiva al primo accesso a {{text.productName}}, oppure dal link qui sotto: basta dare il mandato SEPA sul conto dell'azienda.
+{{#if text.suspensionDate}}
+Se il pagamento non viene attivato, gli accessi saranno sospesi dal {{text.suspensionDate}}.
+{{/if}}
+{{#if text.checkoutUrl}}Attiva il pagamento (link valido 24 ore): {{text.checkoutUrl}}{{/if}}
+
+--
+Messaggio automatico di Keus: le risposte a questo indirizzo non vengono lette.

@@ -1,0 +1,8 @@
+{{#if text.won}}Contestazione chiusa a favore di Keus{{else}}{{#if text.lost}}Contestazione persa{{else}}Addebito contestato{{/if}}{{/if}}
+
+{{#if text.won}}La banca ha respinto la contestazione di {{text.partyName}} sull'addebito di {{text.amount}} ({{text.invoices}}): l'importo torna incassato e i solleciti si fermano.{{else}}{{#if text.lost}}La contestazione di {{text.partyName}} sull'addebito di {{text.amount}} ({{text.invoices}}) si è chiusa a suo favore: l'importo resta al cliente, le fatture restano insolute e i solleciti proseguono.{{else}}{{text.partyName}} ha contestato con la banca l'addebito di {{text.amount}} ({{text.invoices}}). Stripe ha restituito l'importo: le fatture tornano insolute e ripartono i solleciti.{{/if}}{{/if}}
+
+Apri lo scadenziario: {{text.scheduleUrl}}
+
+--
+Messaggio automatico di Keus: le risposte a questo indirizzo non vengono lette.
